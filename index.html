@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>到達時間予測（重み付き）</title>
+  <style>
+    body { font-family: "Segoe UI", sans-serif; background:#f4f6f8; padding:40px; font-size:18px; }
+    .container { max-width:920px; margin:auto; background:#fff; padding:28px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,.1);}    
+    h1 { text-align:center; margin-bottom:16px; font-size:26px; }
+    .row { display:grid; grid-template-columns: 80px 140px 260px 1fr; gap:10px; align-items:center; margin-top:12px; }
+    label { font-weight:bold; }
+    input { width:100%; padding:10px; font-size:16px; }
+    button { padding:10px; font-size:16px; background:#0078d4; color:#fff; border:none; border-radius:8px; cursor:pointer; }
+    .btn-clear { background:#999; }
+    .result { margin-top:18px; padding:16px; background:#f0f7ff; border-radius:8px; line-height:1.8; }
+    .ref { font-size:14px; }
+    .bottom-buttons { margin-top:16px; display:flex; gap:10px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>到達時間予測（直近重み）</h1>
+
+    <div class="row">
+      <label>基準</label>
+      <input type="time" id="t0">
+      <div style="display:flex; gap:6px; align-items:center;">
+        <input type="number" id="q0" placeholder="番号">
+        <button onclick="setNow('t0')">今</button>
+        <button class="btn-clear" onclick="clearRow(0)">C</button>
+      </div>
+      <div class="ref" id="ref0"></div>
+    </div>
+
+    <div id="points"></div>
+
+    <details style="margin-top:16px;">
+      <summary style="cursor:pointer; font-weight:bold;">追加ポイント（#6〜#10）</summary>
+      <div id="extraPoints"></div>
+    </details>
+
+    <label style="margin-top:14px; display:block;">直近重み強さ（1〜5）</label>
+    <input type="number" id="weightPower" value="2" min="1" max="5">
+
+    <div class="bottom-buttons">
+      <button onclick="calculate()">計算</button>
+      <button class="btn-clear" onclick="clearAll()">すべてクリア</button>
+    </div>
+
+    <div class="result" id="result"></div>
+  </div>
+
+<script>
+const MAX=10;
+function addPoint(i, extra=false){
+  const el=document.createElement('div');
+  el.className='row';
+  el.innerHTML=`
+    <label>#${i}</label>
+    <input type="time" id="t${i}">
+    <div style="display:flex; gap:6px; align-items:center;">
+      <input type="number" id="q${i}" placeholder="番号">
+      <button onclick="setNow('t${i}')">今</button>
+      <button class="btn-clear" onclick="clearRow(${i})">C</button>
+    </div>
+    <div class="ref" id="ref${i}"></div>`;
+  if(extra){
+    document.getElementById('extraPoints').appendChild(el);
+  } else {
+    document.getElementById('points').appendChild(el);
+  }
+}
+for(let i=1;i<=5;i++) addPoint(i);
+for(let i=6;i<=10;i++) addPoint(i, true);
+
+function setNow(id){
+  const d=new Date();
+  document.getElementById(id).value=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+function clearRow(i){
+  t=`t${i}`; q=`q${i}`;
+  document.getElementById(t).value='';
+  document.getElementById(q).value='';
+  const r=document.getElementById(`ref${i}`);
+  if(r) r.innerHTML='';
+}
+function clearAll(){ for(let i=0;i<=MAX;i++) clearRow(i); document.getElementById('result').innerHTML=''; }
+
+function toMin(t){const[a,b]=t.split(':').map(Number);return a*60+b;}
+function diffMin(a,b){let d=b-a; if(d<0)d+=1440; return d;}
+function fmt(min){
+  min=Math.round(min);
+  const day=Math.floor(min/1440);
+  const h=Math.floor(min/60)%24;
+  const m=min%60;
+  return `${day>0?`+${day}日 `:''}${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+}
+function fmtHM(min){min=Math.round(min);return `${String(Math.floor(min/60)).padStart(2,'0')}:${String(min%60).padStart(2,'0')}`;}
+
+function collect(){
+  const pts=[];
+  for(let i=0;i<=MAX;i++){
+    const t=document.getElementById(`t${i}`).value;
+    const q=document.getElementById(`q${i}`).value;
+    if(t && q!=='') pts.push({t,q:Number(q),index:i});
+  }
+  return pts;
+}
+
+function calculate(){
+  const pts=collect();
+  const power=Number(document.getElementById('weightPower').value)||2;
+  if(pts.length<2){document.getElementById('result').innerText='2点以上入力してください。';return;}
+
+  let wt=0, wp=0, n=pts.length-1, segments=[];
+
+  for(let i=0;i<n;i++){
+    const a=pts[i], b=pts[i+1];
+    const dt=diffMin(toMin(a.t),toMin(b.t));
+    const dq=a.q-b.q;
+    if(dt>0&&dq>0){
+      const w=Math.pow((i+1)/n,power);
+      wt+=dt*w; wp+=dq*w;
+      segments.push({i,dt,dq});
+    }
+  }
+
+  if(wp<=0){document.getElementById('result').innerText='進行データが不正です。';return;}
+
+  const mpp=wt/wp; // 分/人
+  const perHour=60/mpp; // 人/時
+
+  // ref表示
+  for(let i=0;i<=MAX;i++){const e=document.getElementById(`ref${i}`); if(e)e.innerHTML='';}
+
+  pts.forEach((p,idx)=>{
+    const arr=fmt(toMin(p.t)+p.q*mpp);
+    let trust='高';
+    if(idx<pts.length-1){
+      const seg=segments.find(s=>s.i===idx);
+      if(seg){
+        const local=seg.dt/seg.dq;
+        const diff=Math.abs(local-mpp);
+        if(diff>mpp*0.5)trust='低';
+        else if(diff>mpp*0.2)trust='中';
+      }
+    }
+    const target=document.getElementById(`ref${p.index}`);
+    if(target) target.innerHTML=`予測:${arr}<br>信頼:${trust}`;
+  });
+
+  const last=pts[pts.length-1];
+  const remainMin=last.q*mpp;
+  const arrival=fmt(toMin(last.t)+remainMin);
+
+  // 所要時間（基準時間 → 到達予測）
+  const base=pts[0];
+  const baseMin=toMin(base.t);
+  const arrivalMin=toMin(last.t)+remainMin;
+  const totalMin=diffMin(baseMin, arrivalMin);
+
+  document.getElementById('result').innerHTML=`
+    <b>重み付き平均：</b> ${mpp.toFixed(2)} 分 / 人<br>
+    <b>1時間あたり：</b> 約 ${Math.round(perHour)} 人 / 時<br>
+    <b>残り時間：</b> 約 ${Math.round(remainMin)} 分<br>
+    <b>所要時間（目安）：</b> ${fmtHM(totalMin)}<br>
+    <b>到達予測：</b> <b>${arrival}</b>
+  `;;
+}
+</script>
+</body>
+</html>
