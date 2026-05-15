@@ -13,7 +13,9 @@ function calculate(){
     return;
   }
 
-  // 各区間速度収集
+  // --------------------------------
+  // STEP1: 区間速度収集
+  // --------------------------------
 
   let rawSegments = [];
   let speeds = [];
@@ -23,9 +25,11 @@ function calculate(){
     const a = pts[i];
     const b = pts[i+1];
 
-    const dt = diffMin(toMin(a.t), toMin(b.t));
+    const dt =
+      diffMin(toMin(a.t), toMin(b.t));
 
-    const dq = a.q - b.q;
+    const dq =
+      a.q - b.q;
 
     if(dt > 0 && dq > 0){
 
@@ -50,7 +54,9 @@ function calculate(){
     return;
   }
 
-  // 中央値計算
+  // --------------------------------
+  // STEP2: 中央値
+  // --------------------------------
 
   const sorted =
     [...speeds].sort((a,b)=>a-b);
@@ -58,12 +64,19 @@ function calculate(){
   const median =
     sorted[Math.floor(sorted.length / 2)];
 
-  // 中央値×5倍を異常扱い
+  // 異常減少判定
 
   const abnormalThreshold =
     median * 5;
 
-  // 重み計算
+  // 加速上限制限
+
+  const speedCap =
+    median * 1.5;
+
+  // --------------------------------
+  // STEP3: 重み付き平均
+  // --------------------------------
 
   let wt = 0;
   let wp = 0;
@@ -74,23 +87,50 @@ function calculate(){
 
   rawSegments.forEach((seg, idx)=>{
 
+    // 異常減少
+
     const abnormal =
       seg.speed > abnormalThreshold;
 
     seg.abnormal = abnormal;
 
-    // 異常区間除外
-
     if(abnormal) return;
+
+    // --------------------------
+    // 加速制限
+    // --------------------------
+
+    let adjustedSpeed =
+      seg.speed;
+
+    if(seg.speed > speedCap){
+
+      adjustedSpeed = speedCap;
+    }
+
+    // 補正後の分/人
+
+    const adjustedMpp =
+      1 / adjustedSpeed;
+
+    const adjustedDt =
+      adjustedMpp * seg.dq;
+
+    // --------------------------
+    // 重み
+    // --------------------------
 
     const w =
       Math.pow((idx+1)/n, power);
 
-    wt += seg.dt * w;
+    wt += adjustedDt * w;
 
     wp += seg.dq * w;
 
-    segments.push(seg);
+    segments.push({
+      ...seg,
+      adjustedSpeed
+    });
   });
 
   if(wp <= 0){
@@ -101,13 +141,19 @@ function calculate(){
     return;
   }
 
-  // 平均
+  // --------------------------------
+  // STEP4: 平均
+  // --------------------------------
 
-  const mpp = wt / wp;
+  const mpp =
+    wt / wp;
 
-  const perHour = 60 / mpp;
+  const perHour =
+    60 / mpp;
 
-  // 各行表示クリア
+  // --------------------------------
+  // STEP5: 各行表示
+  // --------------------------------
 
   for(let i=0;i<=MAX;i++){
 
@@ -116,8 +162,6 @@ function calculate(){
 
     if(e) e.innerHTML='';
   }
-
-  // 各行参考表示
 
   pts.forEach((p, idx)=>{
 
@@ -138,19 +182,28 @@ function calculate(){
 
     } else if(seg){
 
-      const local =
-        seg.dt / seg.dq;
+      // 加速補正表示
 
-      const diff =
-        Math.abs(local - mpp);
+      if(seg.speed > speedCap){
 
-      if(diff > mpp * 0.5){
+        trust = '加速補正';
 
-        trust = '低';
+      } else {
 
-      } else if(diff > mpp * 0.2){
+        const local =
+          seg.dt / seg.dq;
 
-        trust = '中';
+        const diff =
+          Math.abs(local - mpp);
+
+        if(diff > mpp * 0.5){
+
+          trust = '低';
+
+        } else if(diff > mpp * 0.2){
+
+          trust = '中';
+        }
       }
     }
 
@@ -164,7 +217,9 @@ function calculate(){
     }
   });
 
-  // 最終予測
+  // --------------------------------
+  // STEP6: 最終予測
+  // --------------------------------
 
   const last =
     pts[pts.length-1];
@@ -189,7 +244,9 @@ function calculate(){
   const totalMin =
     diffMin(baseMin, arrivalMin);
 
-  // 異常区間一覧
+  // --------------------------------
+  // STEP7: 異常一覧
+  // --------------------------------
 
   const abnormalList =
     rawSegments
@@ -197,11 +254,17 @@ function calculate(){
       .map(s=>`#${s.i}→#${s.i+1}`)
       .join(', ');
 
-  // 結果表示
+  // --------------------------------
+  // STEP8: 結果表示
+  // --------------------------------
 
   document.getElementById('result').innerHTML = `
+
     <b>中央値速度：</b>
       ${median.toFixed(2)} 人 / 分<br>
+
+    <b>加速上限：</b>
+      ${speedCap.toFixed(2)} 人 / 分<br>
 
     <b>異常判定：</b>
       ${abnormalThreshold.toFixed(2)} 人 / 分 超<br>
