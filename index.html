@@ -1,328 +1,11 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8" />
-  <title>到達時間予測（重み付き）</title>
-
-  <style>
-    body {
-      font-family: "Segoe UI", sans-serif;
-      background:#f4f6f8;
-      padding:40px;
-      font-size:18px;
-    }
-
-    .container {
-      max-width:920px;
-      margin:auto;
-      background:#fff;
-      padding:28px;
-      border-radius:12px;
-      box-shadow:0 4px 12px rgba(0,0,0,.1);
-    }
-
-    h1 {
-      text-align:center;
-      margin-bottom:16px;
-      font-size:26px;
-    }
-
-    .row {
-      display:grid;
-      grid-template-columns: 80px 140px 260px 1fr;
-      gap:10px;
-      align-items:center;
-      margin-top:12px;
-    }
-
-    label {
-      font-weight:bold;
-    }
-
-    input {
-      width:100%;
-      padding:10px;
-      font-size:16px;
-    }
-
-    button {
-      padding:10px;
-      font-size:16px;
-      background:#0078d4;
-      color:#fff;
-      border:none;
-      border-radius:8px;
-      cursor:pointer;
-    }
-
-    .btn-clear {
-      background:#999;
-    }
-
-    .result {
-      margin-top:18px;
-      padding:16px;
-      background:#f0f7ff;
-      border-radius:8px;
-      line-height:1.8;
-    }
-
-    .ref {
-      font-size:14px;
-    }
-
-    .bottom-buttons {
-      margin-top:16px;
-      display:flex;
-      gap:10px;
-    }
-  </style>
-</head>
-
-<body>
-
-<div class="container">
-
-  <h1>到達時間予測（直近重み）</h1>
-
-  <div class="row">
-    <label>基準</label>
-
-    <input type="time" id="t0" oninput="saveData()">
-
-    <div style="display:flex; gap:6px; align-items:center;">
-      <input type="number" id="q0" placeholder="番号" oninput="saveData()">
-
-      <button onclick="setNow('t0')">今</button>
-
-      <button class="btn-clear" onclick="clearRow(0)">C</button>
-    </div>
-
-    <div class="ref" id="ref0"></div>
-  </div>
-
-  <div id="points"></div>
-
-  <details style="margin-top:16px;">
-    <summary style="cursor:pointer; font-weight:bold;">
-      追加ポイント（#6〜#10）
-    </summary>
-
-    <div id="extraPoints"></div>
-  </details>
-
-  <label style="margin-top:14px; display:block;">
-    直近重み強さ（1〜5）
-  </label>
-
-  <input
-    type="number"
-    id="weightPower"
-    value="2"
-    min="1"
-    max="5"
-    oninput="saveData()"
-  >
-
-  <div class="bottom-buttons">
-    <button onclick="calculate()">計算</button>
-
-    <button class="btn-clear" onclick="clearAll()">
-      すべてクリア
-    </button>
-  </div>
-
-  <div class="result" id="result"></div>
-
-</div>
-
-<script>
-
-const MAX = 10;
-
-function addPoint(i, extra=false){
-
-  const el = document.createElement('div');
-
-  el.className = 'row';
-
-  el.innerHTML = `
-    <label>#${i}</label>
-
-    <input type="time"
-      id="t${i}"
-      oninput="saveData()">
-
-    <div style="display:flex; gap:6px; align-items:center;">
-
-      <input
-        type="number"
-        id="q${i}"
-        placeholder="番号"
-        oninput="saveData()"
-      >
-
-      <button onclick="setNow('t${i}')">今</button>
-
-      <button
-        class="btn-clear"
-        onclick="clearRow(${i})"
-      >
-        C
-      </button>
-
-    </div>
-
-    <div class="ref" id="ref${i}"></div>
-  `;
-
-  if(extra){
-    document.getElementById('extraPoints').appendChild(el);
-  } else {
-    document.getElementById('points').appendChild(el);
-  }
-}
-
-for(let i=1;i<=5;i++) addPoint(i);
-for(let i=6;i<=10;i++) addPoint(i, true);
-
-function setNow(id){
-
-  const d = new Date();
-
-  document.getElementById(id).value =
-    `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-
-  saveData();
-}
-
-function clearRow(i){
-
-  document.getElementById(`t${i}`).value = '';
-  document.getElementById(`q${i}`).value = '';
-
-  const r = document.getElementById(`ref${i}`);
-
-  if(r) r.innerHTML = '';
-
-  saveData();
-}
-
-function clearAll(){
-
-  for(let i=0;i<=MAX;i++){
-    clearRow(i);
-  }
-
-  document.getElementById('result').innerHTML = '';
-
-  localStorage.removeItem('waitTimeTool');
-}
-
-function saveData(){
-
-  const data = {};
-
-  for(let i=0;i<=MAX;i++){
-
-    data[`t${i}`] =
-      document.getElementById(`t${i}`)?.value || '';
-
-    data[`q${i}`] =
-      document.getElementById(`q${i}`)?.value || '';
-  }
-
-  data.weightPower =
-    document.getElementById('weightPower').value;
-
-  localStorage.setItem(
-    'waitTimeTool',
-    JSON.stringify(data)
-  );
-}
-
-function loadData(){
-
-  const saved =
-    localStorage.getItem('waitTimeTool');
-
-  if(!saved) return;
-
-  const data = JSON.parse(saved);
-
-  for(let i=0;i<=MAX;i++){
-
-    if(document.getElementById(`t${i}`))
-      document.getElementById(`t${i}`).value =
-        data[`t${i}`] || '';
-
-    if(document.getElementById(`q${i}`))
-      document.getElementById(`q${i}`).value =
-        data[`q${i}`] || '';
-  }
-
-  document.getElementById('weightPower').value =
-    data.weightPower || 2;
-}
-
-window.onload = function(){
-  loadData();
-}
-
-function toMin(t){
-  const[a,b]=t.split(':').map(Number);
-  return a*60+b;
-}
-
-function diffMin(a,b){
-  let d=b-a;
-  if(d<0)d+=1440;
-  return d;
-}
-
-function fmt(min){
-
-  min=Math.round(min);
-
-  const day=Math.floor(min/1440);
-  const h=Math.floor(min/60)%24;
-  const m=min%60;
-
-  return `${day>0?`+${day}日 `:''}${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-}
-
-function fmtHM(min){
-
-  min=Math.round(min);
-
-  return `${String(Math.floor(min/60)).padStart(2,'0')}:${String(min%60).padStart(2,'0')}`;
-}
-
-function collect(){
-
-  const pts=[];
-
-  for(let i=0;i<=MAX;i++){
-
-    const t=document.getElementById(`t${i}`).value;
-    const q=document.getElementById(`q${i}`).value;
-
-    if(t && q!==''){
-      pts.push({t,q:Number(q),index:i});
-    }
-  }
-
-  return pts;
-}
-
 function calculate(){
 
-  const pts=collect();
+  const pts = collect();
 
-  const power=
-    Number(document.getElementById('weightPower').value)||2;
+  const power =
+    Number(document.getElementById('weightPower').value) || 2;
 
-  if(pts.length<2){
+  if(pts.length < 2){
 
     document.getElementById('result').innerText =
       '2点以上入力してください。';
@@ -330,104 +13,215 @@ function calculate(){
     return;
   }
 
-  let wt=0;
-  let wp=0;
+  // 各区間速度収集
 
-  const n=pts.length-1;
+  let rawSegments = [];
+  let speeds = [];
 
-  let segments=[];
+  for(let i=0;i<pts.length-1;i++){
 
-  for(let i=0;i<n;i++){
+    const a = pts[i];
+    const b = pts[i+1];
 
-    const a=pts[i];
-    const b=pts[i+1];
+    const dt = diffMin(toMin(a.t), toMin(b.t));
 
-    const dt=diffMin(toMin(a.t),toMin(b.t));
+    const dq = a.q - b.q;
 
-    const dq=a.q-b.q;
+    if(dt > 0 && dq > 0){
 
-    if(dt>0&&dq>0){
+      const speed = dq / dt;
 
-      const w=Math.pow((i+1)/n,power);
+      rawSegments.push({
+        i,
+        dt,
+        dq,
+        speed
+      });
 
-      wt+=dt*w;
-      wp+=dq*w;
-
-      segments.push({i,dt,dq});
+      speeds.push(speed);
     }
   }
 
-  if(wp<=0){
+  if(speeds.length === 0){
 
     document.getElementById('result').innerText =
-      '進行データが不正です。';
+      '有効な進行データがありません。';
 
     return;
   }
 
-  const mpp=wt/wp;
+  // 中央値計算
 
-  const perHour=60/mpp;
+  const sorted =
+    [...speeds].sort((a,b)=>a-b);
+
+  const median =
+    sorted[Math.floor(sorted.length / 2)];
+
+  // 中央値×5倍を異常扱い
+
+  const abnormalThreshold =
+    median * 5;
+
+  // 重み計算
+
+  let wt = 0;
+  let wp = 0;
+
+  let segments = [];
+
+  const n = rawSegments.length;
+
+  rawSegments.forEach((seg, idx)=>{
+
+    const abnormal =
+      seg.speed > abnormalThreshold;
+
+    seg.abnormal = abnormal;
+
+    // 異常区間除外
+
+    if(abnormal) return;
+
+    const w =
+      Math.pow((idx+1)/n, power);
+
+    wt += seg.dt * w;
+
+    wp += seg.dq * w;
+
+    segments.push(seg);
+  });
+
+  if(wp <= 0){
+
+    document.getElementById('result').innerText =
+      '正常データが不足しています。';
+
+    return;
+  }
+
+  // 平均
+
+  const mpp = wt / wp;
+
+  const perHour = 60 / mpp;
+
+  // 各行表示クリア
 
   for(let i=0;i<=MAX;i++){
 
-    const e=document.getElementById(`ref${i}`);
+    const e =
+      document.getElementById(`ref${i}`);
 
-    if(e)e.innerHTML='';
+    if(e) e.innerHTML='';
   }
 
-  pts.forEach((p,idx)=>{
+  // 各行参考表示
 
-    const arr=fmt(toMin(p.t)+p.q*mpp);
+  pts.forEach((p, idx)=>{
 
-    let trust='高';
+    const arr =
+      fmt(toMin(p.t) + p.q * mpp);
 
-    if(idx<pts.length-1){
+    let trust = '高';
 
-      const seg=segments.find(s=>s.i===idx);
+    const seg =
+      segments.find(s=>s.i===idx);
 
-      if(seg){
+    const rawSeg =
+      rawSegments.find(s=>s.i===idx);
 
-        const local=seg.dt/seg.dq;
+    if(rawSeg?.abnormal){
 
-        const diff=Math.abs(local-mpp);
+      trust = '異常除外';
 
-        if(diff>mpp*0.5) trust='低';
-        else if(diff>mpp*0.2) trust='中';
+    } else if(seg){
+
+      const local =
+        seg.dt / seg.dq;
+
+      const diff =
+        Math.abs(local - mpp);
+
+      if(diff > mpp * 0.5){
+
+        trust = '低';
+
+      } else if(diff > mpp * 0.2){
+
+        trust = '中';
       }
     }
 
-    const target=document.getElementById(`ref${p.index}`);
+    const target =
+      document.getElementById(`ref${p.index}`);
 
     if(target){
-      target.innerHTML=`予測:${arr}<br>信頼:${trust}`;
+
+      target.innerHTML =
+        `予測:${arr}<br>信頼:${trust}`;
     }
   });
 
-  const last=pts[pts.length-1];
+  // 最終予測
 
-  const remainMin=last.q*mpp;
+  const last =
+    pts[pts.length-1];
 
-  const arrival=fmt(toMin(last.t)+remainMin);
+  const remainMin =
+    last.q * mpp;
 
-  const base=pts[0];
+  const arrival =
+    fmt(toMin(last.t) + remainMin);
 
-  const baseMin=toMin(base.t);
+  // 所要時間
 
-  const arrivalMin=toMin(last.t)+remainMin;
+  const base =
+    pts[0];
 
-  const totalMin=diffMin(baseMin, arrivalMin);
+  const baseMin =
+    toMin(base.t);
 
-  document.getElementById('result').innerHTML=`
-    <b>重み付き平均：</b> ${mpp.toFixed(2)} 分 / 人<br>
-    <b>1時間あたり：</b> 約 ${Math.round(perHour)} 人 / 時<br>
-    <b>残り時間：</b> 約 ${Math.round(remainMin)} 分<br>
-    <b>所要時間（目安）：</b> ${fmtHM(totalMin)}<br>
-    <b>到達予測：</b> <b>${arrival}</b>
+  const arrivalMin =
+    toMin(last.t) + remainMin;
+
+  const totalMin =
+    diffMin(baseMin, arrivalMin);
+
+  // 異常区間一覧
+
+  const abnormalList =
+    rawSegments
+      .filter(s=>s.abnormal)
+      .map(s=>`#${s.i}→#${s.i+1}`)
+      .join(', ');
+
+  // 結果表示
+
+  document.getElementById('result').innerHTML = `
+    <b>中央値速度：</b>
+      ${median.toFixed(2)} 人 / 分<br>
+
+    <b>異常判定：</b>
+      ${abnormalThreshold.toFixed(2)} 人 / 分 超<br>
+
+    <b>重み付き平均：</b>
+      ${mpp.toFixed(2)} 分 / 人<br>
+
+    <b>1時間あたり：</b>
+      約 ${Math.round(perHour)} 人 / 時<br>
+
+    <b>残り時間：</b>
+      約 ${Math.round(remainMin)} 分<br>
+
+    <b>所要時間（目安）：</b>
+      ${fmtHM(totalMin)}<br>
+
+    <b>到達予測：</b>
+      <b>${arrival}</b><br>
+
+    <b>異常除外区間：</b>
+      ${abnormalList || 'なし'}
   `;
 }
-
-</script>
-
-</body>
-</html>
