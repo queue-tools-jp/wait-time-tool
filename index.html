@@ -1,144 +1,179 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <title>到達時間予測（重み付き）</title>
+<meta charset="UTF-8" />
+<title>到達時間予測（直近重み）</title>
 
-  <style>
-    body {
-      font-family: "Segoe UI", sans-serif;
-      background:#f4f6f8;
-      padding:40px;
-      font-size:18px;
-    }
+<style>
 
-    .container {
-      max-width:920px;
-      margin:auto;
-      background:#fff;
-      padding:28px;
-      border-radius:12px;
-      box-shadow:0 4px 12px rgba(0,0,0,.1);
-    }
+body{
+  font-family:"Segoe UI",sans-serif;
+  background:#f4f6f8;
+  padding:40px;
+  font-size:18px;
+}
 
-    h1 {
-      text-align:center;
-      margin-bottom:16px;
-      font-size:26px;
-    }
+.container{
+  max-width:920px;
+  margin:auto;
+  background:#fff;
+  padding:28px;
+  border-radius:12px;
+  box-shadow:0 4px 12px rgba(0,0,0,.1);
+}
 
-    .row {
-      display:grid;
-      grid-template-columns: 80px 140px 260px 1fr;
-      gap:10px;
-      align-items:center;
-      margin-top:12px;
-    }
+h1{
+  text-align:center;
+  margin-bottom:16px;
+  font-size:26px;
+}
 
-    label {
-      font-weight:bold;
-    }
+.row{
+  display:grid;
+  grid-template-columns:80px 140px 260px 1fr;
+  gap:10px;
+  align-items:center;
+  margin-top:12px;
+}
 
-    input {
-      width:100%;
-      padding:10px;
-      font-size:16px;
-    }
+label{
+  font-weight:bold;
+}
 
-    button {
-      padding:10px;
-      font-size:16px;
-      background:#0078d4;
-      color:#fff;
-      border:none;
-      border-radius:8px;
-      cursor:pointer;
-    }
+input{
+  width:100%;
+  padding:10px;
+  font-size:16px;
+}
 
-    .btn-clear {
-      background:#999;
-    }
+button{
+  padding:10px;
+  font-size:16px;
+  background:#0078d4;
+  color:#fff;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+}
 
-    .result {
-      margin-top:18px;
-      padding:16px;
-      background:#f0f7ff;
-      border-radius:8px;
-      line-height:1.8;
-    }
+.btn-clear{
+  background:#999;
+}
 
-    .ref {
-      font-size:14px;
-    }
+.result{
+  margin-top:18px;
+  padding:16px;
+  background:#f0f7ff;
+  border-radius:8px;
+  line-height:1.8;
+}
 
-    .bottom-buttons {
-      margin-top:16px;
-      display:flex;
-      gap:10px;
-    }
-  </style>
+.ref{
+  font-size:14px;
+}
+
+.ref-line{
+  font-size:14px;
+  line-height:1.6;
+}
+
+.bottom-buttons{
+  margin-top:16px;
+  display:flex;
+  gap:10px;
+}
+
+</style>
 </head>
 
 <body>
 
 <div class="container">
 
-  <h1>到達時間予測（直近重み）</h1>
+<h1>到達時間予測（直近重み）</h1>
 
-  <div class="row">
-    <label>基準</label>
+<div class="row">
 
-    <input type="time" id="t0" oninput="saveData()">
+<label>基準</label>
 
-    <div style="display:flex; gap:6px; align-items:center;">
-      <input type="number" id="q0" placeholder="番号" oninput="saveData()">
+<input
+  type="time"
+  id="t0"
+  step="1"
+  oninput="saveData()"
+>
 
-      <button onclick="setNow('t0')">今</button>
-
-      <button class="btn-clear" onclick="clearRow(0)">C</button>
-    </div>
-
-    <div class="ref" id="ref0"></div>
-  </div>
-
-  <div id="points"></div>
-
-  <details style="margin-top:16px;">
-    <summary style="cursor:pointer; font-weight:bold;">
-      追加ポイント（#6〜#10）
-    </summary>
-
-    <div id="extraPoints"></div>
-  </details>
-
-  <label style="margin-top:14px; display:block;">
-    直近重み強さ（1〜5）
-  </label>
+<div style="display:flex; gap:6px; align-items:center;">
 
   <input
     type="number"
-    id="weightPower"
-    value="2"
-    min="1"
-    max="5"
+    id="q0"
+    placeholder="番号"
     oninput="saveData()"
   >
 
-  <div class="bottom-buttons">
-    <button onclick="calculate()">計算</button>
+  <button onclick="setNow('t0')">今</button>
 
-    <button class="btn-clear" onclick="clearAll()">
-      すべてクリア
-    </button>
-  </div>
+  <button
+    class="btn-clear"
+    onclick="clearRow(0)"
+  >
+    C
+  </button>
 
-  <div class="result" id="result"></div>
+</div>
+
+<div class="ref" id="ref0"></div>
+
+</div>
+
+<div id="points"></div>
+
+<details style="margin-top:16px;">
+  <summary style="cursor:pointer; font-weight:bold;">
+    追加ポイント（#6〜#10）
+  </summary>
+
+  <div id="extraPoints"></div>
+</details>
+
+<label style="margin-top:14px; display:block;">
+  直近重み強さ（1〜5）
+</label>
+
+<input
+  type="number"
+  id="weightPower"
+  value="2"
+  min="1"
+  max="5"
+  oninput="saveData()"
+>
+
+<div class="bottom-buttons">
+
+<button onclick="calculate()">計算</button>
+
+<button
+  class="btn-clear"
+  onclick="clearAll()"
+>
+  すべてクリア
+</button>
+
+</div>
+
+<div class="result" id="result"></div>
 
 </div>
 
 <script>
 
 const MAX = 10;
+
+/* =========================
+   行生成
+========================= */
 
 function addPoint(i, extra=false){
 
@@ -147,11 +182,15 @@ function addPoint(i, extra=false){
   el.className = 'row';
 
   el.innerHTML = `
+
     <label>#${i}</label>
 
-    <input type="time"
+    <input
+      type="time"
       id="t${i}"
-      oninput="saveData()">
+      step="1"
+      oninput="saveData()"
+    >
 
     <div style="display:flex; gap:6px; align-items:center;">
 
@@ -174,36 +213,49 @@ function addPoint(i, extra=false){
     </div>
 
     <div class="ref" id="ref${i}"></div>
+
   `;
 
   if(extra){
     document.getElementById('extraPoints').appendChild(el);
-  } else {
+  }else{
     document.getElementById('points').appendChild(el);
   }
 }
 
 for(let i=1;i<=5;i++) addPoint(i);
-for(let i=6;i<=10;i++) addPoint(i, true);
+for(let i=6;i<=10;i++) addPoint(i,true);
+
+/* =========================
+   現在時刻
+========================= */
 
 function setNow(id){
 
   const d = new Date();
 
+  const h = String(d.getHours()).padStart(2,'0');
+  const m = String(d.getMinutes()).padStart(2,'0');
+  const s = String(d.getSeconds()).padStart(2,'0');
+
   document.getElementById(id).value =
-    `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    `${h}:${m}:${s}`;
 
   saveData();
 }
 
+/* =========================
+   クリア
+========================= */
+
 function clearRow(i){
 
-  document.getElementById(`t${i}`).value = '';
-  document.getElementById(`q${i}`).value = '';
+  document.getElementById(`t${i}`).value='';
+  document.getElementById(`q${i}`).value='';
 
-  const r = document.getElementById(`ref${i}`);
+  const r=document.getElementById(`ref${i}`);
 
-  if(r) r.innerHTML = '';
+  if(r) r.innerHTML='';
 
   saveData();
 }
@@ -214,10 +266,14 @@ function clearAll(){
     clearRow(i);
   }
 
-  document.getElementById('result').innerHTML = '';
+  document.getElementById('result').innerHTML='';
 
   localStorage.removeItem('waitTimeTool');
 }
+
+/* =========================
+   LocalStorage 保存
+========================= */
 
 function saveData(){
 
@@ -235,11 +291,18 @@ function saveData(){
   data.weightPower =
     document.getElementById('weightPower').value;
 
+  data.result =
+    document.getElementById('result').innerHTML;
+
   localStorage.setItem(
     'waitTimeTool',
     JSON.stringify(data)
   );
 }
+
+/* =========================
+   LocalStorage 読込
+========================= */
 
 function loadData(){
 
@@ -252,51 +315,86 @@ function loadData(){
 
   for(let i=0;i<=MAX;i++){
 
-    if(document.getElementById(`t${i}`))
+    if(document.getElementById(`t${i}`)){
+
       document.getElementById(`t${i}`).value =
         data[`t${i}`] || '';
+    }
 
-    if(document.getElementById(`q${i}`))
+    if(document.getElementById(`q${i}`)){
+
       document.getElementById(`q${i}`).value =
         data[`q${i}`] || '';
+    }
   }
 
   document.getElementById('weightPower').value =
     data.weightPower || 2;
+
+  document.getElementById('result').innerHTML =
+    data.result || '';
 }
+
+/* =========================
+   自動復元
+========================= */
 
 window.onload = function(){
+
   loadData();
+
+  calculate();
+};
+
+/* =========================
+   時間系
+========================= */
+
+function toSec(t){
+
+  const parts = t.split(':').map(Number);
+
+  const h = parts[0] || 0;
+  const m = parts[1] || 0;
+  const s = parts[2] || 0;
+
+  return h*3600 + m*60 + s;
 }
 
-function toMin(t){
-  const[a,b]=t.split(':').map(Number);
-  return a*60+b;
-}
+function diffSec(a,b){
 
-function diffMin(a,b){
-  let d=b-a;
-  if(d<0)d+=1440;
+  let d = b-a;
+
+  if(d<0) d += 86400;
+
   return d;
 }
 
-function fmt(min){
+function fmt(sec){
 
-  min=Math.round(min);
+  sec=Math.round(sec);
 
-  const day=Math.floor(min/1440);
-  const h=Math.floor(min/60)%24;
-  const m=min%60;
+  const day=Math.floor(sec/86400);
+
+  const h=Math.floor(sec/3600)%24;
+  const m=Math.floor(sec/60)%60;
 
   return `${day>0?`+${day}日 `:''}${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
 }
 
-function fmtHM(min){
+function fmtHM(sec){
 
-  min=Math.round(min);
+  sec=Math.round(sec);
 
-  return `${String(Math.floor(min/60)).padStart(2,'0')}:${String(min%60).padStart(2,'0')}`;
+  const h=Math.floor(sec/3600);
+  const m=Math.floor(sec/60)%60;
+
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
 }
+
+/* =========================
+   データ収集
+========================= */
 
 function collect(){
 
@@ -308,21 +406,30 @@ function collect(){
     const q=document.getElementById(`q${i}`).value;
 
     if(t && q!==''){
-      pts.push({t,q:Number(q),index:i});
+
+      pts.push({
+        t,
+        q:Number(q),
+        index:i
+      });
     }
   }
 
   return pts;
 }
 
+/* =========================
+   計算
+========================= */
+
 function calculate(){
 
-  const pts=collect();
+  const pts = collect();
 
-  const power=
+  const power =
     Number(document.getElementById('weightPower').value)||2;
 
-  if(pts.length<2){
+  if(pts.length < 2){
 
     document.getElementById('result').innerText =
       '2点以上入力してください。';
@@ -342,18 +449,26 @@ function calculate(){
     const a=pts[i];
     const b=pts[i+1];
 
-    const dt=diffMin(toMin(a.t),toMin(b.t));
+    const dt=diffSec(
+      toSec(a.t),
+      toSec(b.t)
+    );
 
     const dq=a.q-b.q;
 
-    if(dt>0&&dq>0){
+    if(dt>0 && dq>0){
 
-      const w=Math.pow((i+1)/n,power);
+      const w =
+        Math.pow((i+1)/n,power);
 
-      wt+=dt*w;
-      wp+=dq*w;
+      wt += dt*w;
+      wp += dq*w;
 
-      segments.push({i,dt,dq});
+      segments.push({
+        i,
+        dt,
+        dq
+      });
     }
   }
 
@@ -365,9 +480,9 @@ function calculate(){
     return;
   }
 
-  const mpp=wt/wp;
+  const spp = wt/wp;
 
-  const perHour=60/mpp;
+  const perHour = 3600/spp;
 
   for(let i=0;i<=MAX;i++){
 
@@ -376,56 +491,98 @@ function calculate(){
     if(e)e.innerHTML='';
   }
 
-  pts.forEach((p,idx)=>{
+  for(let i=1;i<pts.length;i++){
 
-    const arr=fmt(toMin(p.t)+p.q*mpp);
+    const prev=pts[i-1];
+    const curr=pts[i];
 
-    let trust='高';
+    const dt=diffSec(
+      toSec(prev.t),
+      toSec(curr.t)
+    );
 
-    if(idx<pts.length-1){
+    const dq=prev.q-curr.q;
 
-      const seg=segments.find(s=>s.i===idx);
+    if(dt<=0 || dq<=0) continue;
 
-      if(seg){
+    const localSpeed=dq/dt;
 
-        const local=seg.dt/seg.dq;
+    const localPerHour =
+      Math.round(localSpeed*3600);
 
-        const diff=Math.abs(local-mpp);
+    const remainSec =
+      curr.q/localSpeed;
 
-        if(diff>mpp*0.5) trust='低';
-        else if(diff>mpp*0.2) trust='中';
-      }
-    }
+    const arrival =
+      fmt(toSec(curr.t)+remainSec);
 
-    const target=document.getElementById(`ref${p.index}`);
+    const target =
+      document.getElementById(`ref${curr.index}`);
 
     if(target){
-      target.innerHTML=`予測:${arr}<br>信頼:${trust}`;
+
+      target.innerHTML=`
+
+        <div class="ref-line">
+          約${localPerHour}人/時
+        </div>
+
+        <div class="ref-line">
+          （参考予測）${arrival}
+        </div>
+
+      `;
     }
-  });
+  }
 
   const last=pts[pts.length-1];
 
-  const remainMin=last.q*mpp;
+  const remainSec=last.q*spp;
 
-  const arrival=fmt(toMin(last.t)+remainMin);
+  const arrival=
+    fmt(toSec(last.t)+remainSec);
 
   const base=pts[0];
 
-  const baseMin=toMin(base.t);
+  const baseSec=toSec(base.t);
 
-  const arrivalMin=toMin(last.t)+remainMin;
+  const arrivalSec=
+    toSec(last.t)+remainSec;
 
-  const totalMin=diffMin(baseMin, arrivalMin);
+  const totalSec=
+    diffSec(baseSec,arrivalSec);
 
   document.getElementById('result').innerHTML=`
-    <b>重み付き平均：</b> ${mpp.toFixed(2)} 分 / 人<br>
-    <b>1時間あたり：</b> 約 ${Math.round(perHour)} 人 / 時<br>
-    <b>残り時間：</b> 約 ${Math.round(remainMin)} 分<br>
-    <b>所要時間（目安）：</b> ${fmtHM(totalMin)}<br>
-    <b>到達予測：</b> <b>${arrival}</b>
+
+    <b>重み付き平均：</b>
+      ${(spp/60).toFixed(2)} 分 / 人<br>
+
+    <b>1時間あたり：</b>
+      約 ${Math.round(perHour)} 人 / 時<br>
+
+    <b>残り時間：</b>
+      約 ${Math.round(remainSec/60)} 分<br>
+
+    <b>所要時間（目安）：</b>
+      ${fmtHM(totalSec)}<br>
+
+    <b>到達予測：</b>
+      <b>${arrival}</b>
+
   `;
+
+  saveData();
 }
+
+/* =========================
+   30秒ごと自動保存
+========================= */
+
+setInterval(function(){
+
+  saveData();
+
+},30000);
 
 </script>
 
