@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8" />
-<title>到達時間予測（直近重み）</title>
+<title>到達時間予測</title>
 
 <style>
 
@@ -90,7 +90,7 @@ button{
 
 <div class="container">
 
-<h1>到達時間予測（直近重み）</h1>
+<h1>到達時間予測</h1>
 
 <div class="row">
 
@@ -99,8 +99,13 @@ button{
 <input
   type="time"
   id="t0"
+  name="t0"
   step="1"
   oninput="saveData()"
+  autocomplete="new-password"
+  autocorrect="off"
+  autocapitalize="off"
+  spellcheck="false"
 >
 
 <div style="display:flex; gap:6px; align-items:center;">
@@ -108,8 +113,13 @@ button{
   <input
     type="number"
     id="q0"
+    name="q0"
     placeholder="番号"
     oninput="saveData()"
+autocomplete="new-password"
+autocorrect="off"
+autocapitalize="off"
+spellcheck="false"
   >
 
   <button onclick="setNow('t0')">今</button>
@@ -138,16 +148,21 @@ button{
 </details>
 
 <label style="margin-top:14px; display:block;">
-  直近重み強さ（1〜5）
+  直近重み強さ（1〜10）
 </label>
 
 <input
   type="number"
   id="weightPower"
+  name="weightPower"
   value="2"
   min="1"
-  max="5"
+  max="10"
   oninput="saveData()"
+  autocomplete="new-password"
+  autocorrect="off"
+  autocapitalize="off"
+  spellcheck="false"
 >
 
 <div class="bottom-buttons">
@@ -185,21 +200,31 @@ function addPoint(i, extra=false){
 
     <label>#${i}</label>
 
-    <input
-      type="time"
-      id="t${i}"
-      step="1"
-      oninput="saveData()"
-    >
+<input
+  type="time"
+  id="t${i}"
+  name="t${i}"
+  step="1"
+  oninput="saveData()"
+  autocomplete="new-password"
+  autocorrect="off"
+  autocapitalize="off"
+  spellcheck="false"
+>
 
     <div style="display:flex; gap:6px; align-items:center;">
 
-      <input
-        type="number"
-        id="q${i}"
-        placeholder="番号"
-        oninput="saveData()"
-      >
+<input
+  type="number"
+  id="q${i}"
+  name="q${i}"
+  placeholder="番号"
+  oninput="saveData()"
+  autocomplete="new-password"
+  autocorrect="off"
+  autocapitalize="off"
+  spellcheck="false"
+>
 
       <button onclick="setNow('t${i}')">今</button>
 
@@ -268,35 +293,56 @@ function clearAll(){
 
   document.getElementById('result').innerHTML='';
 
-  localStorage.removeItem('waitTimeTool');
-}
+  for(let i=0;i<=MAX;i++){
 
+    localStorage.removeItem(`t${i}`);
+    localStorage.removeItem(`q${i}`);
+
+    sessionStorage.removeItem(`t${i}`);
+    sessionStorage.removeItem(`q${i}`);
+  }
+
+  localStorage.removeItem('weightPower');
+  localStorage.removeItem('result');
+
+  sessionStorage.removeItem('weightPower');
+  sessionStorage.removeItem('result');
+}
 /* =========================
    LocalStorage 保存
 ========================= */
 
 function saveData(){
 
-  const data = {};
-
   for(let i=0;i<=MAX;i++){
 
-    data[`t${i}`] =
+    const t =
       document.getElementById(`t${i}`)?.value || '';
 
-    data[`q${i}`] =
+    const q =
       document.getElementById(`q${i}`)?.value || '';
+
+    localStorage.setItem(`t${i}`,t);
+    localStorage.setItem(`q${i}`,q);
+
+    sessionStorage.setItem(`t${i}`,t);
+    sessionStorage.setItem(`q${i}`,q);
   }
 
-  data.weightPower =
+  const weight =
     document.getElementById('weightPower').value;
 
-  data.result =
-    document.getElementById('result').innerHTML;
+  localStorage.setItem('weightPower',weight);
+  sessionStorage.setItem('weightPower',weight);
 
   localStorage.setItem(
-    'waitTimeTool',
-    JSON.stringify(data)
+    'result',
+    document.getElementById('result').innerHTML
+  );
+
+  sessionStorage.setItem(
+    'result',
+    document.getElementById('result').innerHTML
   );
 }
 
@@ -306,46 +352,54 @@ function saveData(){
 
 function loadData(){
 
-  const saved =
-    localStorage.getItem('waitTimeTool');
-
-  if(!saved) return;
-
-  const data = JSON.parse(saved);
-
   for(let i=0;i<=MAX;i++){
 
-    if(document.getElementById(`t${i}`)){
+    const t =
+      localStorage.getItem(`t${i}`) ||
+      sessionStorage.getItem(`t${i}`) ||
+      '';
 
-      document.getElementById(`t${i}`).value =
-        data[`t${i}`] || '';
+    const q =
+      localStorage.getItem(`q${i}`) ||
+      sessionStorage.getItem(`q${i}`) ||
+      '';
+
+    if(document.getElementById(`t${i}`)){
+      document.getElementById(`t${i}`).value=t;
     }
 
     if(document.getElementById(`q${i}`)){
-
-      document.getElementById(`q${i}`).value =
-        data[`q${i}`] || '';
+      document.getElementById(`q${i}`).value=q;
     }
   }
 
   document.getElementById('weightPower').value =
-    data.weightPower || 2;
+    localStorage.getItem('weightPower') ||
+    sessionStorage.getItem('weightPower') ||
+    '2';
 
   document.getElementById('result').innerHTML =
-    data.result || '';
+    localStorage.getItem('result') ||
+    sessionStorage.getItem('result') ||
+    '';
 }
-
 /* =========================
    自動復元
 ========================= */
 
-window.onload = function(){
+document.addEventListener(
+  'DOMContentLoaded',
+  function(){
 
-  loadData();
+    loadData();
 
-  calculate();
-};
+    setTimeout(function(){
 
+      calculate();
+
+    },100);
+  }
+);
 /* =========================
    時間系
 ========================= */
@@ -442,8 +496,6 @@ function calculate(){
 
   const n=pts.length-1;
 
-  let segments=[];
-
   for(let i=0;i<n;i++){
 
     const a=pts[i];
@@ -464,11 +516,6 @@ function calculate(){
       wt += dt*w;
       wp += dq*w;
 
-      segments.push({
-        i,
-        dt,
-        dq
-      });
     }
   }
 
@@ -583,6 +630,27 @@ setInterval(function(){
   saveData();
 
 },30000);
+
+document.addEventListener(
+  'visibilitychange',
+  function(){
+
+    if(document.visibilityState === 'hidden'){
+      saveData();
+    }
+
+  }
+);
+
+window.addEventListener(
+  'pagehide',
+  saveData
+);
+
+window.addEventListener(
+  'blur',
+  saveData
+);
 
 </script>
 
